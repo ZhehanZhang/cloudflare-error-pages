@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-<meta name="robots" content="noindex, nofollow" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZhehanZ Protection</title>
 
 <style>
-  /* 版式与深色模式同前 */
   body{font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
   .spinner,.warning{width:40px;height:40px;margin-bottom:20px}
   .spinner{border:4px solid #ddd;border-top:4px solid #333;border-radius:50%;animation:spin 1s linear infinite}
@@ -49,79 +48,76 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  /* ---------- 文案 ---------- */
-  const L = (navigator.language.startsWith('zh') ? {
-    five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
-    cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
-    brand:'ZhehanZ 由 Cloudflare 防护',
-    show:'查看更多信息',hide:'隐藏更多信息',
-    details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']
-  } :
-  {
-    five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
-    cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
-    brand:'ZhehanZ protected by Cloudflare',
-    show:'Show details',hide:'Hide details',
-    details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']
-  });
+  const lang    = navigator.language.startsWith('zh') ? 'zh' : 'en';
+  const L = {
+    zh:{five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
+        cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
+        brand:'ZhehanZ 由 Cloudflare 防护',show:'查看更多信息',hide:'隐藏更多信息',
+        details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']},
+    en:{five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
+        cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
+        brand:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',
+        details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']}
+  }[lang];
 
-  /* ---------- DOM ---------- */
-  const spinner = document.querySelector('.spinner');
-  const warn    = document.querySelector('.warning');
-  const titleEl = document.getElementById('title');
-  const statusEl= document.getElementById('status');
-  const brandEl = document.getElementById('brand');
-  const toggle  = document.getElementById('toggle');
-  const detail  = document.getElementById('detail');
-  const form    = document.getElementById('captcha-form');
+  /* DOM refs */
+  const spinner   = document.querySelector('.spinner');
+  const warning   = document.querySelector('.warning');
+  const titleEl   = document.getElementById('title');
+  const statusEl  = document.getElementById('status');
+  const brandEl   = document.getElementById('brand');
+  const toggle    = document.getElementById('toggle');
+  const detail    = document.getElementById('detail');
+  const form      = document.getElementById('captcha-form');
+
   brandEl.textContent = L.brand;
-
-  /* ---------- 详情展开 ---------- */
-  toggle.textContent = L.show;
+  toggle.textContent  = L.show;
   toggle.addEventListener('click',()=>{
     const open = detail.classList.toggle('open');
     toggle.textContent = open? L.hide : L.show;
     if(open) detail.innerHTML = L.details.map(d=>`<p>${d}</p>`).join('');
   });
 
-  /* ---------- 模式切换 ---------- */
-  let mode = 'init';           // 'five' or 'captcha'
-  const widgetIdSelector = '#turnstile-widget, #turnstile-wrapper, .cf-turnstile'; // 可能的 Turnstile 容器
-  function setVisualHide() {
-    const widgetBox = form.querySelector(widgetIdSelector);
-    Array.from(form.children).forEach(child=>{
-      child.classList.toggle('visually-hidden', child!==widgetBox);
+  /* mode management */
+  const widgetSelector = '#turnstile-widget, #turnstile-wrapper, .cf-turnstile';
+  let mode  = 'init';
+  let timer = null;
+
+  function applyVisualHide(){
+    const widgetBox = form.querySelector(widgetSelector);
+    Array.from(form.children).forEach(el=>{
+      el.classList.toggle('visually-hidden', el!==widgetBox);
     });
   }
-  function switchToFive(){
+
+  function setFiveMode(){
+    mode='five';
     spinner.style.display='block';
-    warn.style.display='none';
+    warning.style.display='none';
     titleEl.textContent=L.five.t;
     statusEl.textContent=L.five.s1;
-    setTimeout(()=>{ if(mode==='five') statusEl.textContent=L.five.s2; },5000);
-    toggle.textContent=L.show; detail.classList.remove('open');
-    mode='five';
+    timer = setTimeout(()=>{ if(mode==='five') statusEl.textContent=L.five.s2;},5000);
   }
-  function switchToCaptcha(){
+  function setCaptchaMode(){
+    mode='captcha';
+    if(timer){ clearTimeout(timer); timer=null; }          // 取消任何 5s 计时
     spinner.style.display='none';
-    warn.style.display='block';
+    warning.style.display='block';
     titleEl.textContent=L.cap.t;
     statusEl.textContent=L.cap.s;
-    toggle.textContent=L.show; detail.classList.remove('open');
-    setVisualHide();
-    mode='captcha';
-  }
-  function evaluateMode(){
-    const widgetExists = !!form.querySelector(widgetIdSelector);
-    if(widgetExists && mode!=='captcha')   switchToCaptcha();
-    if(!widgetExists && mode!=='five')     switchToFive();
+    applyVisualHide();
   }
 
-  /* ---------- Observe DOM 变化 ---------- */
-  const observer = new MutationObserver(evaluateMode);
-  observer.observe(form,{childList:true,subtree:true});
-  // 初始调用
-  evaluateMode();
+  function evaluate(){
+    const hasWidget = !!form.querySelector(widgetSelector);
+    if(hasWidget && mode!=='captcha') setCaptchaMode();
+    if(!hasWidget && mode!=='five')   setFiveMode();
+  }
+
+  /* 观察 DOM 变化 */
+  const obs = new MutationObserver(evaluate);
+  obs.observe(form,{childList:true,subtree:true});
+  evaluate();                          // 初始
 });
 </script>
 </body>
