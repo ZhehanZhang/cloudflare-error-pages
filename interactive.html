@@ -8,11 +8,14 @@
 <title>ZhehanZ Protection</title>
 
 <style>
-  body{font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
+  /* ========= 基础视觉 ========= */
+  body{font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center;
+       align-items:center;text-align:center;min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
   .spinner,.warning{width:40px;height:40px;margin-bottom:20px}
   .spinner{border:4px solid #ddd;border-top:4px solid #333;border-radius:50%;animation:spin 1s linear infinite}
   .warning{border:4px solid #333;border-radius:50%;display:none;position:relative}
-  .warning::before{content:"!";color:#333;font-size:24px;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .warning::before{content:"!";color:#333;font-size:24px;font-weight:bold;position:absolute;
+                   top:50%;left:50%;transform:translate(-50%,-50%)}
   @keyframes spin{to{transform:rotate(360deg)}}
   .large{font-size:1.8em;font-weight:bold;margin:0}
   .status{font-size:1em;color:#777;margin:8px 0 20px}
@@ -21,10 +24,19 @@
   .protection{font-size:.8em;color:#777;margin-top:20px;margin-bottom:5px}
   .more-info{display:flex;flex-direction:column;align-items:center}
   .more-info a{font-size:.8em;color:#777;text-decoration:underline;cursor:pointer;margin-bottom:5px}
-  .info-text{font-size:.8em;color:#777;text-align:center;max-width:55%;overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease}
+  .info-text{font-size:.8em;color:#777;text-align:center;max-width:55%;overflow:hidden;
+             max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease}
   .info-text.open{max-height:200px;opacity:1}
+  /* 视觉隐藏（仍保留节点） */
   .visually-hidden{opacity:0;height:1px;width:1px;overflow:hidden;pointer-events:none;position:relative}
-  @media(prefers-color-scheme:dark){body{background:#121212;color:#e0e0e0}.spinner{border:4px solid #444;border-top:4px solid #e0e0e0}.warning{border-color:#e0e0e0}.warning::before{color:#e0e0e0}.status,.protection,.info-text,.more-info a{color:#aaa}}
+
+  /* 深色模式 */
+  @media(prefers-color-scheme:dark){
+    body{background:#121212;color:#e0e0e0}
+    .spinner{border:4px solid #444;border-top:4px solid #e0e0e0}
+    .warning{border-color:#e0e0e0}.warning::before{color:#e0e0e0}
+    .status,.protection,.info-text,.more-info a{color:#aaa}
+  }
 </style>
 </head>
 
@@ -36,7 +48,10 @@
   <p class="status" id="status"></p>
 
   <div class="captcha-container">
-    <form id="captcha-form">::CAPTCHA_BOX::</form>
+    <form id="captcha-form">
+      <!-- Cloudflare 将把 Turnstile widget 填充在此占位内 -->
+      ::CAPTCHA_BOX::
+    </form>
   </div>
 
   <p class="protection" id="brand"></p>
@@ -48,76 +63,87 @@
 
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
-  const lang    = navigator.language.startsWith('zh') ? 'zh' : 'en';
-  const L = {
-    zh:{five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
-        cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
-        brand:'ZhehanZ 由 Cloudflare 防护',show:'查看更多信息',hide:'隐藏更多信息',
-        details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']},
-    en:{five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
-        cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
-        brand:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',
-        details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']}
+  /* ========== 文案 ========= */
+  const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+  const TEXT = {
+    zh:{
+      five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
+      cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
+      brand:'ZhehanZ 由 Cloudflare 防护',
+      show:'查看更多信息',hide:'隐藏更多信息',
+      details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']
+    },
+    en:{
+      five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
+      cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
+      brand:'ZhehanZ protected by Cloudflare',
+      show:'Show details',hide:'Hide details',
+      details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']
+    }
   }[lang];
 
-  /* DOM refs */
-  const spinner   = document.querySelector('.spinner');
-  const warning   = document.querySelector('.warning');
-  const titleEl   = document.getElementById('title');
-  const statusEl  = document.getElementById('status');
-  const brandEl   = document.getElementById('brand');
-  const toggle    = document.getElementById('toggle');
-  const detail    = document.getElementById('detail');
-  const form      = document.getElementById('captcha-form');
+  /* ========== DOM 引用 ========= */
+  const spinner = document.querySelector('.spinner');
+  const warn    = document.querySelector('.warning');
+  const titleEl = document.getElementById('title');
+  const statusEl= document.getElementById('status');
+  const brandEl = document.getElementById('brand');
+  const toggle  = document.getElementById('toggle');
+  const detail  = document.getElementById('detail');
+  const form    = document.getElementById('captcha-form');
 
-  brandEl.textContent = L.brand;
-  toggle.textContent  = L.show;
+  brandEl.textContent = TEXT.brand;
+  toggle.textContent  = TEXT.show;
   toggle.addEventListener('click',()=>{
     const open = detail.classList.toggle('open');
-    toggle.textContent = open? L.hide : L.show;
-    if(open) detail.innerHTML = L.details.map(d=>`<p>${d}</p>`).join('');
+    toggle.textContent = open? TEXT.hide : TEXT.show;
+    if(open) detail.innerHTML = TEXT.details.map(d=>`<p>${d}</p>`).join('');
   });
 
-  /* mode management */
-  const widgetSelector = '#turnstile-widget, #turnstile-wrapper, .cf-turnstile';
-  let mode  = 'init';
-  let timer = null;
+  /* ========== 模式管理 ========= */
+  const widgetSelector = '#turnstile-widget,#turnstile-wrapper,.cf-turnstile,iframe[src*=\"challenges.cloudflare.com\"]';
+  let mode='init', fiveTimer=null;
 
-  function applyVisualHide(){
-    const widgetBox = form.querySelector(widgetSelector);
+  // 只视觉隐藏非 widget 容器
+  function visualHide(){
+    const widgetBox = form.querySelector(widgetSelector)?.closest('div[id]') || null;
     Array.from(form.children).forEach(el=>{
-      el.classList.toggle('visually-hidden', el!==widgetBox);
+      el.classList.toggle('visually-hidden', widgetBox && el!==widgetBox);
     });
   }
 
-  function setFiveMode(){
+  function enterFive(){
     mode='five';
     spinner.style.display='block';
-    warning.style.display='none';
-    titleEl.textContent=L.five.t;
-    statusEl.textContent=L.five.s1;
-    timer = setTimeout(()=>{ if(mode==='five') statusEl.textContent=L.five.s2;},5000);
+    warn.style.display='none';
+    titleEl.textContent = TEXT.five.t;
+    statusEl.textContent= TEXT.five.s1;
+    if(fiveTimer) clearTimeout(fiveTimer);
+    fiveTimer = setTimeout(()=>{ if(mode==='five') statusEl.textContent=TEXT.five.s2;},5000);
   }
-  function setCaptchaMode(){
+
+  function enterCaptcha(){
     mode='captcha';
-    if(timer){ clearTimeout(timer); timer=null; }          // 取消任何 5s 计时
+    if(fiveTimer){clearTimeout(fiveTimer);fiveTimer=null;}
     spinner.style.display='none';
-    warning.style.display='block';
-    titleEl.textContent=L.cap.t;
-    statusEl.textContent=L.cap.s;
-    applyVisualHide();
+    warn.style.display='block';
+    titleEl.textContent = TEXT.cap.t;
+    statusEl.textContent= TEXT.cap.s;
+    visualHide();                      // 仅保留 widget 容器
   }
 
   function evaluate(){
     const hasWidget = !!form.querySelector(widgetSelector);
-    if(hasWidget && mode!=='captcha') setCaptchaMode();
-    if(!hasWidget && mode!=='five')   setFiveMode();
+    if(hasWidget && mode!=='captcha') enterCaptcha();
+    if(!hasWidget && mode!=='five')   enterFive();
   }
 
-  /* 观察 DOM 变化 */
-  const obs = new MutationObserver(evaluate);
-  obs.observe(form,{childList:true,subtree:true});
-  evaluate();                          // 初始
+  /* MutationObserver + 轮询双保险 */
+  new MutationObserver(evaluate).observe(form,{childList:true,subtree:true});
+  const poll = setInterval(()=>{ evaluate(); if(mode==='captcha') clearInterval(poll); },500);
+
+  /* 初始化 */
+  evaluate();
 });
 </script>
 </body>
