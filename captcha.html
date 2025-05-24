@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZhehanZ Protection</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            color: #333;
+        }
+        .warning-sign {
+            border: 4px solid #333;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .warning-sign::before {
+            content: "?";
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .large {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .status {
+            font-size: 1em;
+            color: #777;
+            margin: 8px 0 20px;
+        }
+        .captcha-container {
+            margin: 20px 0;
+        }
+        .captcha-container form {
+            display: inline-block;
+            text-align: left;
+        }
+        .protection {
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+        .more-info {
+            margin-top: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .more-info a {
+            font-size: 0.8em;
+            color: #777;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+        .info-text {
+            font-size: 0.8em;
+            color: #777;
+            text-align: center;
+            display: inline-block;
+            max-width: 80%;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+        .info-text.open {
+            max-height: 200px;
+            opacity: 1;
+        }
+        .info-text p { margin: 4px 0; }
+        @media (prefers-color-scheme: dark) {
+            body { background: #121212; color: #e0e0e0; }
+            .warning-sign { border-color: #e0e0e0; }
+            .warning-sign::before { color: #e0e0e0; }
+            .status, .protection, .info-text { color: #aaa; }
+            .more-info a { color: #aaa; }
+        }
+    </style>
+</head>
+<body>
+    <div class="warning-sign"></div>
+
+    <p class="large" id="main-text"></p>
+    <p class="status" id="status-text"></p>
+
+    <div class="captcha-container">
+        <form id="captcha-form">::CAPTCHA_BOX::</form>
+    </div>
+
+    <p class="protection" id="protection-text"></p>
+    <div class="more-info">
+        <a id="toggle-info"></a>
+        <div class="info-text" id="info-text"></div>
+    </div>
+<script>
+    const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+    const texts = {
+        en: {
+            main: 'Complete verification',
+            status: 'Pass the turnstile to continue access',
+            show: 'Show details',
+            hide: 'Hide details',
+            protection: 'ZhehanZ protected by Cloudflare',
+            details: [
+                '::RAY_ID::',
+                '::CLIENT_IP:: ::GEO::',
+                'This page appears due to unusual activity or enhanced security measures.'
+            ]
+        },
+        zh: {
+            main: '请完成验证',
+            status: '完成以下人机验证以继续访问',
+            show: '查看更多信息',
+            hide: '隐藏更多信息',
+            protection: 'ZhehanZ 由 Cloudflare 提供防护',
+            details: [
+                '::RAY_ID::',
+                '::CLIENT_IP:: ::GEO::',
+                '此页面因异常网络活动或强化的安全防护而显示。'
+            ]
+        }
+    };
+    const t = texts[lang];
+    document.getElementById('main-text').textContent = t.main;
+    document.getElementById('status-text').textContent = t.status;
+    document.getElementById('protection-text').textContent = t.protection;
+    const toggle = document.getElementById('toggle-info');
+    const info = document.getElementById('info-text');
+    toggle.textContent = t.show;
+    toggle.addEventListener('click', () => {
+        const isOpen = info.classList.toggle('open');
+        toggle.textContent = isOpen ? t.hide : t.show;
+        if (isOpen) {
+            info.innerHTML = t.details.map(line => `<p>${line}</p>`).join('');
+        }
+    });
+</script>
+</body>
+</html>
