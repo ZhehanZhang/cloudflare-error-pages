@@ -43,8 +43,7 @@
       font-size: 24px;
       font-weight: bold;
       position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .large { font-size: 1.8em; font-weight: bold; margin: 0; }
@@ -86,30 +85,38 @@
 
   <script>
     const isZh = navigator.language.startsWith('zh');
+    // 文本定义
     const texts5 = {
-      en: { main:'A moment please', status1:'Checking your network...', status2:'Check complete. Proceeding...', protection:'ZhehanZ protected by Cloudflare', show:'Show details', hide:'Hide details', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.'] },
-      zh: { main:'请稍作等候', status1:'正在检查网络', status2:'检查完成，即将继续访问', protection:'ZhehanZ 由 Cloudflare 防护', show:'查看更多信息', hide:'隐藏更多信息', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。'] }
+      en:{main:'A moment please',status1:'Checking your network...',status2:'Check complete. Proceeding...',protection:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']},
+      zh:{main:'请稍作等候',status1:'正在检查网络',status2:'检查完成，即将继续访问',protection:'ZhehanZ 由 Cloudflare 防护',show:'查看更多信息',hide:'隐藏更多信息',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']}
     };
     const textCap = {
-      en: { main:'Complete verification', status:'Pass the turnstile to continue access', protection:'ZhehanZ protected by Cloudflare', show:'Show details', hide:'Hide details', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.'] },
-      zh: { main:'请完成验证', status:'完成以下人机验证以继续访问', protection:'ZhehanZ 由 Cloudflare 提供防护', show:'查看更多信息', hide:'隐藏更多信息', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。'] }
+      en:{main:'Complete verification',status:'Pass the turnstile to continue access',protection:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']},
+      zh:{main:'请完成验证',status:'完成以下人机验证以继续访问',protection:'ZhehanZ 由 Cloudflare 提供防护',show:'查看更多信息',hide:'隐藏更多信息',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']}
     };
-
+    // 检测widget
     const widget = document.getElementById('turnstile-widget');
-    const mode = widget ? 'captcha' : '5s';
-    const t = mode==='captcha' ? textCap[isZh?'zh':'en'] : texts5[isZh?'zh':'en'];
+    const mode = widget? 'captcha':'5s';
+    const t = mode==='captcha'? textCap[isZh?'zh':'en'] : texts5[isZh?'zh':'en'];
 
-    // toggle icons
-    document.querySelector('.spinner').style.display = mode==='5s' ? 'block':'none';
-    document.querySelector('.warning-sign').style.display = mode==='captcha' ? 'block':'none';
-
-    // set texts
+    // 模式切换图标
+    document.querySelector('.spinner').style.display = mode==='5s'? 'block':'none';
+    document.querySelector('.warning-sign').style.display = mode==='captcha'? 'block':'none';
+    
+    // 设置主要文案
     document.getElementById('main-text').textContent = t.main;
-    document.getElementById('status-text').textContent = mode==='5s'? t.status1:t.status;
-    if(mode==='5s') setTimeout(()=>{ document.getElementById('status-text').textContent = t.status2; },5000);
+    if(mode==='5s'){
+      document.getElementById('status-text').textContent = t.status1;
+      setTimeout(()=>{document.getElementById('status-text').textContent = t.status2;},5000);
+    } else {
+      document.getElementById('status-text').textContent = t.status;
+      // 隐藏CAPTCHA_BOX内非widget元素
+      const form = document.getElementById('captcha-form');
+      Array.from(form.children).forEach(el=>{if(el.id!=='turnstile-widget') el.style.display='none';});
+    }
     document.getElementById('protection-text').textContent = t.protection;
 
-    // details toggle
+    // 更多信息切换
     const toggle = document.getElementById('toggle-info');
     const info = document.getElementById('info-text');
     toggle.textContent = t.show;
