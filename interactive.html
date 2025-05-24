@@ -8,7 +8,7 @@
 <title>ZhehanZ Protection</title>
 
 <style>
-/* —— 通用布局 —— */
+/* -------- 通用布局 -------- */
 body{font-family:Arial,sans-serif;display:flex;flex-direction:column;
       justify-content:center;align-items:center;text-align:center;
       min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
@@ -19,26 +19,15 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;
 .warning::before{content:"!";font-size:24px;font-weight:bold;position:absolute;
                  top:50%;left:50%;transform:translate(-50%,-50%)}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 .large{font-size:1.8em;font-weight:bold;margin:0}
 .status{font-size:1em;color:#777;margin:8px 0 20px}
-
 .captcha-container{margin:20px 0}
-.captcha-container form{display:inline-block;text-align:left}
-
 .protection{font-size:.8em;color:#777;margin-top:20px;margin-bottom:5px}
-
 .more-info{display:flex;flex-direction:column;align-items:center}
 .more-info a{font-size:.8em;color:#777;text-decoration:underline;cursor:pointer;margin-bottom:5px}
 .info-text{font-size:.8em;color:#777;text-align:center;max-width:55%;
-           overflow:hidden;max-height:0;opacity:0;
-           transition:max-height .3s ease,opacity .3s ease}
+           overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease}
 .info-text.open{max-height:200px;opacity:1}
-
-/* 视觉隐藏但不移除 */
-.visually-hidden{opacity:0;height:1px;width:1px;overflow:hidden;
-                 pointer-events:none;position:relative}
-
 /* 深色模式 */
 @media(prefers-color-scheme:dark){
   body{background:#121212;color:#e0e0e0}
@@ -50,109 +39,91 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;
 </head>
 
 <body>
-  <!-- 图标区 -->
   <div class="spinner"></div>
   <div class="warning"></div>
 
-  <!-- 文案 -->
   <p class="large"  id="title"></p>
   <p class="status" id="status"></p>
 
-  <!-- CAPTCHA 占位 -->
+  <!-- CAPTCHA 占位；Turnstile 将在此处异步插入 -->
   <div class="captcha-container">
     <form id="captcha-form">::CAPTCHA_BOX::</form>
   </div>
 
-  <!-- 品牌行 -->
   <p class="protection" id="brand"></p>
 
-  <!-- 详情 -->
   <div class="more-info">
     <a id="toggle"></a>
     <div class="info-text" id="detail"></div>
   </div>
 
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  /* === 文案定义 === */
-  const lang = navigator.language.startsWith('zh')?'zh':'en';
-  const TXT = {
-    zh:{
-      five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
-      cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
+/* 文案 */
+const lang = navigator.language.startsWith('zh')?'zh':'en';
+const TXT = {
+  zh:{five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
+      cap :{t:'请完成验证',s:'完成以下人机验证以继续访问'},
       brand:'ZhehanZ 由 Cloudflare 防护',
       show:'查看更多信息',hide:'隐藏更多信息',
-      details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']
-    },
-    en:{
-      five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
-      cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
+      details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']},
+  en:{five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
+      cap :{t:'Complete verification',s:'Pass the turnstile to continue access'},
       brand:'ZhehanZ protected by Cloudflare',
       show:'Show details',hide:'Hide details',
       details:['::RAY_ID::','::CLIENT_IP:: ::GEO::',
-               'This page appears due to unusual activity or enhanced security measures.']
-    }
-  }[lang];
+               'This page appears due to unusual activity or enhanced security measures.']}
+}[lang];
 
-  /* === DOM === */
-  const spinner=document.querySelector('.spinner');
-  const warn=document.querySelector('.warning');
-  const title=document.getElementById('title');
-  const status=document.getElementById('status');
-  const brand=document.getElementById('brand');
-  const toggle=document.getElementById('toggle');
-  const detail=document.getElementById('detail');
-  const form=document.getElementById('captcha-form');
-  brand.textContent = TXT.brand;
+/* DOM refs */
+const spinner = document.querySelector('.spinner');
+const warning = document.querySelector('.warning');
+const title   = document.getElementById('title');
+const status  = document.getElementById('status');
+const brand   = document.getElementById('brand');
+const toggle  = document.getElementById('toggle');
+const detail  = document.getElementById('detail');
+brand.textContent = TXT.brand;
 
-  /* === 详情 toggle === */
-  toggle.textContent = TXT.show;
-  toggle.addEventListener('click',()=>{
-    const open = detail.classList.toggle('open');
-    toggle.textContent = open? TXT.hide : TXT.show;
-    if(open) detail.innerHTML = TXT.details.map(v=>`<p>${v}</p>`).join('');
-  });
-
-  /* === 模式切换 === */
-  const widgetSel = '#turnstile-widget, #turnstile-wrapper, .cf-turnstile';
-  let mode='init',timer=null,poll=null;
-
-  function visuallyHideOthers(){
-    const box=document.querySelector(widgetSel)?.closest('div[id]')||null;
-    Array.from(form.children).forEach(ch=>{
-      ch.classList.toggle('visually-hidden', box? ch!==box : false);
-    });
-  }
-  function enterFive(){
-    if(mode==='five') return;
-    if(timer) clearTimeout(timer);
-    spinner.style.display='block'; warn.style.display='none';
-    title.textContent=TXT.five.t; status.textContent=TXT.five.s1;
-    timer=setTimeout(()=>{ if(mode==='five') status.textContent=TXT.five.s2; },5000);
-    toggle.textContent=TXT.show; detail.classList.remove('open');
-    mode='five';
-  }
-  function enterCaptcha(){
-    if(mode==='captcha') return;
-    if(timer){ clearTimeout(timer); timer=null;}
-    spinner.style.display='none'; warn.style.display='block';
-    title.textContent=TXT.cap.t; status.textContent=TXT.cap.s;
-    visuallyHideOthers();
-    clearInterval(poll);               // 停止轮询
-    mode='captcha';
-  }
-
-  /* — 检测函数 — */
-  function evaluate(){
-    const hasWidget = !!document.querySelector(widgetSel);
-    hasWidget ? enterCaptcha() : enterFive();
-  }
-
-  /* 初始 / 轮询 / 监听 */
-  evaluate();
-  poll=setInterval(evaluate,200);                         // 200 ms 轮询
-  new MutationObserver(evaluate).observe(document.body,{childList:true,subtree:true});
+/* 详情展开 */
+toggle.textContent = TXT.show;
+toggle.addEventListener('click',()=>{
+  const open = detail.classList.toggle('open');
+  toggle.textContent = open? TXT.hide : TXT.show;
+  if(open) detail.innerHTML = TXT.details.map(d=>`<p>${d}</p>`).join('');
 });
+
+/* ---------- 模式切换 ---------- */
+let mode='init', timer=null, poll=null;
+
+/* 只检测 Turnstile iframe（src 含 challenge-platform/.../turnstile） */
+function hasWidget(){
+  return !!document.querySelector('iframe[src*=\"/challenge-platform/\"][src*=\"/turnstile\"]');
+}
+function enterFive(){
+  if(mode==='five') return;
+  if(timer) clearTimeout(timer);
+  spinner.style.display='block'; warning.style.display='none';
+  title.textContent=TXT.five.t; status.textContent=TXT.five.s1;
+  timer=setTimeout(()=>{ if(mode==='five') status.textContent=TXT.five.s2; },5000);
+  mode='five';
+}
+function enterCap(){
+  if(mode==='captcha') return;
+  if(timer){ clearTimeout(timer); timer=null; }
+  clearInterval(poll);                     // 停止轮询
+  spinner.style.display='none'; warning.style.display='block';
+  title.textContent=TXT.cap.t; status.textContent=TXT.cap.s;
+  mode='captcha';
+}
+
+/* 评估并切换 */
+function evaluate(){ hasWidget()? enterCap(): enterFive(); }
+
+/* MutationObserver + 轮询双保险 */
+const observer=new MutationObserver(evaluate);
+observer.observe(document.body,{childList:true,subtree:true});
+poll=setInterval(evaluate,300);
+evaluate();                    // 初始
 </script>
 </body>
 </html>
