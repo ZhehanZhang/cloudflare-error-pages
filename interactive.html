@@ -16,7 +16,7 @@
     .large{font-size:1.8em;font-weight:bold;margin:0}
     .status{font-size:1em;color:#777;margin:8px 0 20px}
     .captcha-container{margin:20px 0}
-    .captcha-container form{display:inline-block;text-align:left;}
+    .captcha-container form{display:inline-block;text-align:left}
     .protection{font-size:0.8em;color:#777;margin-top:20px;margin-bottom:5px}
     .more-info{display:flex;flex-direction:column;align-items:center}
     .more-info a{font-size:0.8em;color:#777;text-decoration:underline;cursor:pointer;margin-bottom:5px}
@@ -29,20 +29,65 @@
 <body>
   <div class="spinner"></div>
   <div class="warning-sign"></div>
+
   <p class="large" id="main-text"></p>
   <p class="status" id="status-text"></p>
+
   <div class="captcha-container">
     <form id="captcha-form">::CAPTCHA_BOX::</form>
   </div>
+
   <p class="protection" id="protection-text"></p>
   <div class="more-info">
     <a id="toggle-info"></a>
     <div class="info-text" id="info-text"></div>
   </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('captcha-form');
       const widgetSelector = 'input[name="cf-turnstile-response"], input[name="cf_challenge_response"]';
+      const spinner = document.querySelector('.spinner');
+      const warning = document.querySelector('.warning-sign');
+      const mainText = document.getElementById('main-text');
+      const statusText = document.getElementById('status-text');
+      const protectionText = document.getElementById('protection-text');
+      const toggle = document.getElementById('toggle-info');
+      const info = document.getElementById('info-text');
+      const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+
+      const texts5 = {
+        en: { main:'A moment please', status1:'Checking your network...', status2:'Check complete. Proceeding...', protection:'ZhehanZ protected by Cloudflare', show:'Show details', hide:'Hide details', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.'] },
+        zh: { main:'请稍作等候', status1:'正在检查网络', status2:'检查完成，即将继续访问', protection:'ZhehanZ 由 Cloudflare 防护', show:'查看更多信息', hide:'隐藏更多信息', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。'] }
+      };
+      const textCap = {
+        en: { main:'Complete verification', status:'Pass the turnstile to continue', protection:'ZhehanZ protected by Cloudflare', show:'Show details', hide:'Hide details', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.'] },
+        zh: { main:'完成验证', status:'以下人机验证完成后将继续访问', protection:'ZhehanZ 由 Cloudflare 提供防护', show:'查看更多信息', hide:'隐藏更多信息', details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。'] }
+      };
+      let currentMode = null;
+
+      function updateMode() {
+        const widget = form.querySelector(widgetSelector);
+        const mode = widget ? 'captcha' : '5s';
+        if (mode === currentMode) return;
+        currentMode = mode;
+        const t = mode === 'captcha' ? textCap[lang] : texts5[lang];
+        // icons
+        spinner.style.display = mode === '5s' ? 'block' : 'none';
+        warning.style.display = mode === 'captcha' ? 'block' : 'none';
+        // texts
+        mainText.textContent = t.main;
+        if (mode === '5s') {
+          statusText.textContent = t.status1;
+          setTimeout(() => { if (currentMode === '5s') statusText.textContent = t.status2; }, 5000);
+        } else {
+          statusText.textContent = t.status;
+        }
+        protectionText.textContent = t.protection;
+        toggle.textContent = t.show;
+        info.classList.remove('open');
+      }
+
       function hideNonWidget() {
         const children = Array.from(form.children);
         children.forEach(child => {
@@ -53,46 +98,22 @@
           }
         });
       }
-      // observe additions
-      const observer = new MutationObserver(hideNonWidget);
-      observer.observe(form, { childList: true, subtree: true });
-      // initial hide
-      hideNonWidget();
 
-      // determine mode
-      const widgetExists = !!form.querySelector(widgetSelector);
-      const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
-      const texts5 = {
-        en:{main:'A moment please',status1:'Checking your network...',status2:'Check complete. Proceeding...',protection:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']},
-        zh:{main:'请稍作等候',status1:'正在检查网络',status2:'检查完成，即将继续访问',protection:'ZhehanZ 由 Cloudflare 防护',show:'查看更多信息',hide:'隐藏更多信息',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']}
-      };
-      const textCap = {
-        en:{main:'Complete verification',status:'Pass the turnstile to continue access',protection:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']},
-        zh:{main:'请完成验证',status:'完成以下人机验证以继续访问',protection:'ZhehanZ 由 Cloudflare 提供防护',show:'查看更多信息',hide:'隐藏更多信息',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']}
-      };
-      const mode = widgetExists ? 'captcha' : '5s';
-      const t = mode==='captcha' ? textCap[lang] : texts5[lang];
-      // icons
-      document.querySelector('.spinner').style.display = mode==='5s' ? 'block' : 'none';
-      document.querySelector('.warning-sign').style.display = mode==='captcha' ? 'block' : 'none';
-      // texts
-      document.getElementById('main-text').textContent = t.main;
-      if(mode==='5s'){
-        const statusEl = document.getElementById('status-text');
-        statusEl.textContent = t.status1;
-        setTimeout(()=>{ statusEl.textContent = t.status2; },5000);
-      } else {
-        document.getElementById('status-text').textContent = t.status;
-      }
-      document.getElementById('protection-text').textContent = t.protection;
-      // details toggle
-      const toggle = document.getElementById('toggle-info');
-      const info = document.getElementById('info-text');
-      toggle.textContent = t.show;
+      // observe and initial
+      const observer = new MutationObserver(() => {
+        hideNonWidget();
+        updateMode();
+      });
+      observer.observe(form, { childList: true, subtree: true });
+      hideNonWidget();
+      updateMode();
+
+      // toggle details
       toggle.addEventListener('click', () => {
         const open = info.classList.toggle('open');
+        const t = currentMode === 'captcha' ? textCap[lang] : texts5[lang];
         toggle.textContent = open ? t.hide : t.show;
-        if(open) info.innerHTML = t.details.map(d => `<p>${d}</p>`).join('');
+        if (open) info.innerHTML = t.details.map(d => `<p>${d}</p>`).join('');
       });
     });
   </script>
