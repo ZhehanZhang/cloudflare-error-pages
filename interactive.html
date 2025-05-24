@@ -1,104 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-  <meta name="robots" content="noindex, nofollow" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ZhehanZ Protection</title>
-  <style>
-    body{font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
-    .spinner,.warning{width:40px;height:40px;margin-bottom:20px}
-    .spinner{border:4px solid #ddd;border-top:4px solid #333;border-radius:50%;animation:spin 1s linear infinite}
-    .warning{border:4px solid #333;border-radius:50%;display:none;position:relative}
-    .warning::before{content:"!";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:bold;color:#333}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .large{font-size:1.8em;font-weight:bold;margin:0}
-    .status{font-size:1em;color:#777;margin:8px 0 20px}
-    .captcha-container{margin:20px 0}
-    .captcha-container form{display:inline-block;text-align:left}
-    .protection{font-size:.8em;color:#777;margin-top:20px;margin-bottom:5px}
-    .more-info{display:flex;flex-direction:column;align-items:center}
-    .more-info a{font-size:.8em;color:#777;text-decoration:underline;cursor:pointer;margin-bottom:5px}
-    .info-text{font-size:.8em;color:#777;text-align:center;max-width:55%;overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease}
-    .info-text.open{max-height:200px;opacity:1}
-    @media(prefers-color-scheme:dark){body{background:#121212;color:#e0e0e0}.spinner{border:4px solid #444;border-top:4px solid #e0e0e0}.warning{border-color:#e0e0e0}.warning::before{color:#e0e0e0}.status,.protection,.info-text,.more-info a{color:#aaa}}
-    /*视觉隐藏*/
-    .visually-hidden{opacity:0;height:1px;width:1px;overflow:hidden;pointer-events:none}
-  </style>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZhehanZ Protection</title>
+
+<style>
+  /* 版式与深色模式同前 */
+  body{font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:100vh;margin:0;padding:20px;background:#fff;color:#333}
+  .spinner,.warning{width:40px;height:40px;margin-bottom:20px}
+  .spinner{border:4px solid #ddd;border-top:4px solid #333;border-radius:50%;animation:spin 1s linear infinite}
+  .warning{border:4px solid #333;border-radius:50%;display:none;position:relative}
+  .warning::before{content:"!";color:#333;font-size:24px;font-weight:bold;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .large{font-size:1.8em;font-weight:bold;margin:0}
+  .status{font-size:1em;color:#777;margin:8px 0 20px}
+  .captcha-container{margin:20px 0}
+  .captcha-container form{display:inline-block;text-align:left}
+  .protection{font-size:.8em;color:#777;margin-top:20px;margin-bottom:5px}
+  .more-info{display:flex;flex-direction:column;align-items:center}
+  .more-info a{font-size:.8em;color:#777;text-decoration:underline;cursor:pointer;margin-bottom:5px}
+  .info-text{font-size:.8em;color:#777;text-align:center;max-width:55%;overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease}
+  .info-text.open{max-height:200px;opacity:1}
+  .visually-hidden{opacity:0;height:1px;width:1px;overflow:hidden;pointer-events:none;position:relative}
+  @media(prefers-color-scheme:dark){body{background:#121212;color:#e0e0e0}.spinner{border:4px solid #444;border-top:4px solid #e0e0e0}.warning{border-color:#e0e0e0}.warning::before{color:#e0e0e0}.status,.protection,.info-text,.more-info a{color:#aaa}}
+</style>
 </head>
+
 <body>
   <div class="spinner"></div>
   <div class="warning"></div>
-  <p class="large" id="title"></p>
+
+  <p class="large"  id="title"></p>
   <p class="status" id="status"></p>
-  <div class="captcha-container"><form id="captcha-form">::CAPTCHA_BOX::</form></div>
+
+  <div class="captcha-container">
+    <form id="captcha-form">::CAPTCHA_BOX::</form>
+  </div>
+
   <p class="protection" id="brand"></p>
-  <div class="more-info"><a id="toggle"></a><div class="info-text" id="detail"></div></div>
+
+  <div class="more-info">
+    <a id="toggle"></a>
+    <div class="info-text" id="detail"></div>
+  </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded',()=>{
-    const lang= navigator.language.startsWith('zh')?'zh':'en';
-    const L={
-      zh:{five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},cap:{t:'请完成验证',s:'完成以下人机验证以继续访问'},brand:'ZhehanZ 由 Cloudflare 防护',show:'查看更多信息',hide:'隐藏更多信息',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']},
-      en:{five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},cap:{t:'Complete verification',s:'Pass the turnstile to continue access'},brand:'ZhehanZ protected by Cloudflare',show:'Show details',hide:'Hide details',details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']}
-    }[lang];
-
-    const spinner=document.querySelector('.spinner');
-    const warn=document.querySelector('.warning');
-    const title=document.getElementById('title');
-    const status=document.getElementById('status');
-    const brand=document.getElementById('brand');
-    const toggle=document.getElementById('toggle');
-    const detail=document.getElementById('detail');
-    const form=document.getElementById('captcha-form');
-
-    brand.textContent=L.brand;
-    toggle.textContent=L.show;
-    toggle.addEventListener('click',()=>{
-      const o=detail.classList.toggle('open');
-      toggle.textContent=o?L.hide:L.show;
-      if(o) detail.innerHTML=L.details.map(d=>`<p>${d}</p>`).join('');
-    });
-
-    const widgetSel='#turnstile-wrapper iframe, .cf-turnstile, input[name="cf-turnstile-response"], input[name="cf_challenge_response"]';
-    let mode=null;
-    const applyHide=()=>{
-      const widget=document.querySelector(widgetSel);
-      Array.from(form.children).forEach(el=>{
-        el.classList.toggle('visually-hidden', widget? el.contains(widget)===false : false);
-      });
-    };
-    const updateTexts=m=>{
-      if(m==='captcha'){
-        title.textContent=L.cap.t;
-        status.textContent=L.cap.s;
-      }else{
-        title.textContent=L.five.t;
-        status.textContent=L.five.s1;
-        setTimeout(()=>{if(mode==='five')status.textContent=L.five.s2;},5000);
-      }
-      toggle.textContent=L.show;detail.classList.remove('open');
-    };
-    const switchMode=m=>{
-      if(mode===m) return;mode=m;
-      spinner.style.display=m==='five'?'block':'none';
-      warn.style.display =m==='captcha'?'block':'none';
-      updateTexts(m);
-    };
-
-    const observer=new MutationObserver(()=>{
-      const hasWidget=!!document.querySelector(widgetSel);
-      switchMode(hasWidget?'captcha':'five');
-      if(hasWidget) applyHide();
-    });
-    observer.observe(form,{childList:true,subtree:true});
-
-    // 初始判断
-    const initWidget=!!document.querySelector(widgetSel);
-    switchMode(initWidget?'captcha':'five');
-    if(initWidget) applyHide();
+document.addEventListener('DOMContentLoaded',()=>{
+  /* ---------- 文案 ---------- */
+  const L = (navigator.language.startsWith('zh') ? {
+    five:{t:'请稍作等候',s1:'正在检查网络',s2:'检查完成，即将继续访问'},
+    cap :{t:'请完成验证',s :'完成以下人机验证以继续访问'},
+    brand:'ZhehanZ 由 Cloudflare 防护',
+    show:'查看更多信息',hide:'隐藏更多信息',
+    details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','此页面因异常网络活动或强化的安全防护而显示。']
+  } :
+  {
+    five:{t:'A moment please',s1:'Checking your network...',s2:'Check complete. Proceeding...'},
+    cap :{t:'Complete verification',s :'Pass the turnstile to continue access'},
+    brand:'ZhehanZ protected by Cloudflare',
+    show:'Show details',hide:'Hide details',
+    details:['::RAY_ID::','::CLIENT_IP:: ::GEO::','This page appears due to unusual activity or enhanced security measures.']
   });
+
+  /* ---------- DOM ---------- */
+  const spinner = document.querySelector('.spinner');
+  const warn    = document.querySelector('.warning');
+  const titleEl = document.getElementById('title');
+  const statusEl= document.getElementById('status');
+  const brandEl = document.getElementById('brand');
+  const toggle  = document.getElementById('toggle');
+  const detail  = document.getElementById('detail');
+  const form    = document.getElementById('captcha-form');
+  brandEl.textContent = L.brand;
+
+  /* ---------- 详情展开 ---------- */
+  toggle.textContent = L.show;
+  toggle.addEventListener('click',()=>{
+    const open = detail.classList.toggle('open');
+    toggle.textContent = open? L.hide : L.show;
+    if(open) detail.innerHTML = L.details.map(d=>`<p>${d}</p>`).join('');
+  });
+
+  /* ---------- 模式切换 ---------- */
+  let mode = 'init';           // 'five' or 'captcha'
+  const widgetIdSelector = '#turnstile-widget, #turnstile-wrapper, .cf-turnstile'; // 可能的 Turnstile 容器
+  function setVisualHide() {
+    const widgetBox = form.querySelector(widgetIdSelector);
+    Array.from(form.children).forEach(child=>{
+      child.classList.toggle('visually-hidden', child!==widgetBox);
+    });
+  }
+  function switchToFive(){
+    spinner.style.display='block';
+    warn.style.display='none';
+    titleEl.textContent=L.five.t;
+    statusEl.textContent=L.five.s1;
+    setTimeout(()=>{ if(mode==='five') statusEl.textContent=L.five.s2; },5000);
+    toggle.textContent=L.show; detail.classList.remove('open');
+    mode='five';
+  }
+  function switchToCaptcha(){
+    spinner.style.display='none';
+    warn.style.display='block';
+    titleEl.textContent=L.cap.t;
+    statusEl.textContent=L.cap.s;
+    toggle.textContent=L.show; detail.classList.remove('open');
+    setVisualHide();
+    mode='captcha';
+  }
+  function evaluateMode(){
+    const widgetExists = !!form.querySelector(widgetIdSelector);
+    if(widgetExists && mode!=='captcha')   switchToCaptcha();
+    if(!widgetExists && mode!=='five')     switchToFive();
+  }
+
+  /* ---------- Observe DOM 变化 ---------- */
+  const observer = new MutationObserver(evaluateMode);
+  observer.observe(form,{childList:true,subtree:true});
+  // 初始调用
+  evaluateMode();
+});
 </script>
 </body>
 </html>
