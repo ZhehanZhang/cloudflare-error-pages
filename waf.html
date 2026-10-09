@@ -213,6 +213,35 @@
         }
         .info-text p.meta + p:not(.meta) { margin-top: 0.5rem; }
 
+        /* The overall status of all our services, from status.zhehanz.com. Its
+         * slot is always laid out, so nothing moves when it fades in. */
+        .system {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            padding: 0.25rem 0.75rem;
+            min-height: 1.875rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: var(--fg);
+            text-decoration: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 400ms ease-out, color 300ms ease-in-out, border-color 300ms ease-in-out;
+        }
+        .system.ready { opacity: 1; visibility: visible; }
+        .system:hover { color: var(--fg-strong); border-color: var(--line-hover); }
+        .system-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--fg-muted); flex: none; }
+        .system-dot.operational { background: #10b981; }
+        .system-dot.partial { background: #f59e0b; }
+        .system-dot.degraded { background: #f97316; }
+        .system-dot.down { background: #ef4444; }
+        .system-dot.maintenance { background: #0ea5e9; }
+        .system-arrow { width: 0.875rem; height: 0.875rem; margin-right: -0.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6; }
+
         .reveal {
             opacity: 0.001;
             transform: translateY(12px);
@@ -221,7 +250,7 @@
         @keyframes reveal { to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) {
             .reveal { animation: none; opacity: 1; transform: none; }
-            .info-text, .more-info a { transition: none; }
+            .info-text, .more-info a, .system { transition: none; }
         }
     </style>
 </head>
@@ -230,6 +259,7 @@
         <svg class="mark" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="M237.69-100q-23.59 0-40.64-17.05T180-157.69v-400.15q0-23.9 17.05-40.8t40.64-16.9h69.62v-91.77q0-71.89 50.44-122.29Q408.19-880 480.13-880q71.95 0 122.25 50.4 50.31 50.4 50.31 122.29v91.77h69.62q23.59 0 40.64 16.9t17.05 40.8v400.15q0 23.59-17.05 40.64T722.31-100H237.69Zm0-45.39h484.62q5.38 0 8.84-3.46t3.46-8.84v-400.15q0-5.39-3.46-8.85t-8.84-3.46H237.69q-5.38 0-8.84 3.46t-3.46 8.85v400.15q0 5.38 3.46 8.84t8.84 3.46Zm290.27-164.14q19.81-19.53 19.81-47.01 0-26.54-19.98-47.77-19.97-21.23-47.96-21.23-27.98 0-47.79 21.23t-19.81 48.27q0 27.04 19.98 46.54 19.97 19.5 47.96 19.5 27.98 0 47.79-19.53ZM352.69-615.54h254.62v-91.77q0-53.04-37.09-90.17t-90.08-37.13q-52.99 0-90.22 37.13t-37.23 90.17v91.77Zm-127.3 470.15v-424.76 424.76Z"/></svg>
         <h1 class="large" id="main-text"></h1>
         <p class="status" id="status-text"></p>
+        <a class="system" id="system-status" href="https://status.zhehanz.com/"><span class="system-dot" id="system-dot"></span><span id="system-text"></span><svg class="system-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
     </main>
     <footer class="reveal">
         <div class="more-info">
@@ -328,6 +358,49 @@
         t.show,
         t.hide
     );
+    // Overall status of all our services. If it cannot be loaded in time, the
+    // link still shows, just without a status.
+    (function () {
+        const words = {
+            en: {
+                none: "System status",
+                operational: "All systems operational",
+                partial: "Some services running with reduced capacity",
+                degraded: "Some services are slow",
+                down: "Some services are down",
+                maintenance: "Maintenance in progress"
+            },
+            zh: {
+                none: "系统状态",
+                operational: "所有服务运行正常",
+                partial: "部分服务容量降低",
+                degraded: "部分服务响应缓慢",
+                down: "部分服务中断",
+                maintenance: "计划维护进行中"
+            }
+        }[lang];
+        const link = document.getElementById('system-status');
+        const text = document.getElementById('system-text');
+        const dot = document.getElementById('system-dot');
+        let done = false;
+        const show = status => {
+            if (done) return;
+            done = true;
+            text.textContent = words[status] || words.none;
+            if (words[status]) dot.classList.add(status); else dot.style.display = 'none';
+            link.classList.add('ready');
+        };
+        const timer = setTimeout(() => show(null), 2500);
+        try {
+            fetch('https://status.zhehanz.com/api/summary', { credentials: 'omit' })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => { clearTimeout(timer); show(data && data.overall); })
+                .catch(() => { clearTimeout(timer); show(null); });
+        } catch (_) {
+            clearTimeout(timer);
+            show(null);
+        }
+    })();
 </script>
 </body>
 </html>
